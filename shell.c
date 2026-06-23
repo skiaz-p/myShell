@@ -1,10 +1,12 @@
 //*** Libraries ***//
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 //*** Defines ***//
 #define SHELL_LINE_BUFSIZE 1024
-
+#define SHELL_TOKEN_BUFSIZE 64
+#define SHELL_TOKEN_DELIM " \t\r\n\a"
 
 //*** Functions ***//
 
@@ -16,7 +18,7 @@ char *shell_read_line(void){
     int c;
 
     if(!buffer){
-        fprinf(stderr, "Shell allocation error");
+        fprinf(stderr, "Shell allocation error\n");
         exit(EXIT_FAILURE);
     }
 
@@ -38,11 +40,44 @@ char *shell_read_line(void){
             bufferSize += SHELL_LINE_BUFSIZE;
             buffer = realloc(buffer, bufferSize);
             if(!buffer){
-                fprintf(stderr, "Shell allocation error");
+                fprintf(stderr, "Shell allocation error\n");
                 exit(EXIT_FAILURE);
             }
         }
     }
+}
+
+//Parsing function
+char **shell_split_line(char *line){
+    int bufferSize = SHELL_TOKEN_BUFSIZE;
+    int position = 0;
+    char **tokens = malloc(bufferSize * sizeof(char*));
+    char* token;
+
+    //if we could not allocate
+    if(!tokens){
+        fprintf(stderr, "Tokenization error\n");
+        exit(EXIT_FAILURE);
+    }
+    //tokenize the line
+    token = strtok(line, SHELL_TOKEN_DELIM);
+    while (token != NULL){
+        tokens[position] = token;
+        position ++;
+        
+        //if we go past the buffer size, we reallocate the memory
+        if(position >= bufferSize){
+            bufferSize += SHELL_TOKEN_BUFSIZE;
+            tokens = realloc(tokens, bufferSize * sizeof(char *));
+                if(!tokens){
+                    fprintf(stderr, "Tokenization error\n");
+                    exit(EXIT_FAILURE);
+                }
+        }
+        token = strtok(NULL, SHELL_TOKEN_DELIM);
+    }
+    tokens[position] = NULL;
+    return tokens;
 }
 
 //basic loop for input and the base of the shell
