@@ -2,13 +2,111 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
 
 //*** Defines ***//
 #define SHELL_LINE_BUFSIZE 1024
 #define SHELL_TOKEN_BUFSIZE 64
 #define SHELL_TOKEN_DELIM " \t\r\n\a"
 
-//*** Functions ***//
+
+//*** Builtin basics functions ***//
+
+//declarations 
+int shell_cd(char **args);
+int shell_help(char **args);
+int shell_exit(char **args);
+
+//commands
+
+char *builtin_str[] = {
+    "cd",
+    "help",
+    "exit"
+};
+
+int (*builtin_func[]) (char**) ={
+    &shell_cd,
+    &shell_help,
+    &shell_exit
+};
+
+int shell_num_builtins(){
+    return sizeof(builtin_str) /sizeof(char *);
+}
+
+//implementations
+
+int shell_cd(char **args){
+    if(args[1] == NULL){
+        fprintf(stderr, "Shell : expected argument to \"cd\"\n");
+    }else{
+        if(chdir(args[1]) != 0){
+            perror("Shell");
+        }
+    }
+    return 1;
+}
+
+int shell_help(char **args){
+    int i;
+
+    printf("Luc Casassus Latrille shell\n");
+    printf("Type program names and arguments, and hit enter.\n");
+    printf("The following are built in:\n");
+
+    for (i=0; i< shell_num_builtins(); i++){
+        printf("  %s\n", builtin_str[i]);
+    }
+
+    printf("Use the man command for information on other programs.\n");
+    return 1;
+}
+
+int shell_exit(char **agrs){
+    return 0;
+}
+
+//*** Kernel Functions ***//
+
+int shell_launch(char **args){
+    pid_t pid, wpid;
+    int status;
+
+    pid = fork();
+    if (pid == 0){
+        //the child process
+        if(execvp(args[0], args) == -1){
+            perror("shell");
+        }
+        exit(EXIT_FAILURE);
+    } else if(pid < 1){
+        perror("Forking error");
+    }else {
+        //parent process
+        do{
+            wpid = waitpid(pid, &status, WUNTRACED);
+        }while(WIFEXITED(status) && !WIFSIGNALED(status));
+    }
+    return 1;
+
+}
+
+int shell_execute(char **args){
+    int i;
+    if(args[0] == NULL){
+        return 1;
+    }
+
+    for(i=0 ; i< shell_num_builtins(); i++){
+        if(strcmp(args[0], builtin_str[i]) == 0){
+            return (*builtin_func[i])(args);
+        }
+    }
+
+    return shell_launch(args);
+}
 
 //Function for reading a line
 char *shell_read_line(void){
@@ -18,7 +116,7 @@ char *shell_read_line(void){
     int c;
 
     if(!buffer){
-        fprinf(stderr, "Shell allocation error\n");
+        fprintf(stderr, "Shell allocation error\n");
         exit(EXIT_FAILURE);
     }
 
@@ -64,7 +162,7 @@ char **shell_split_line(char *line){
     while (token != NULL){
         tokens[position] = token;
         position ++;
-        
+
         //if we go past the buffer size, we reallocate the memory
         if(position >= bufferSize){
             bufferSize += SHELL_TOKEN_BUFSIZE;
