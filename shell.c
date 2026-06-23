@@ -87,7 +87,7 @@ int shell_launch(char **args){
         //parent process
         do{
             wpid = waitpid(pid, &status, WUNTRACED);
-        }while(WIFEXITED(status) && !WIFSIGNALED(status));
+        }while(!WIFEXITED(status) && !WIFSIGNALED(status));
     }
     return 1;
 
@@ -138,7 +138,7 @@ char *shell_read_line(void){
             bufferSize += SHELL_LINE_BUFSIZE;
             buffer = realloc(buffer, bufferSize);
             if(!buffer){
-                fprintf(stderr, "Shell allocation error\n");
+                fprintf(stderr, "shell allocation error\n");
                 exit(EXIT_FAILURE);
             }
         }
