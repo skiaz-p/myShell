@@ -185,7 +185,7 @@ void shell_loop(void){
     int status;
 
     do {
-        printf(">");
+        printf("Diaphragme>");
         line = shell_read_line();
         args = shell_split_line(line);
         status = shell_execute(args);
@@ -199,6 +199,7 @@ void shell_loop(void){
 //main function : launches the shell
 int main (int argc, char **argv){
     //for oading config files 
+    system("clear");
     //loop function 
 
     shell_loop();
